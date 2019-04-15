@@ -52,13 +52,17 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
+    int response_length;
 
     // Build HTTP response and store it in response
-
+    sprintf(response, "%s\n%s\nContent-Length: %d\nConnection: close\n\n%s",
+            header, content_type, content_length, body
+        );
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-
+    response_length = strlen(response);
+    puts(response);
     // Send it all!
     int rv = send(fd, response, response_length, 0);
 
@@ -144,6 +148,9 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    // char *line;
+    char *method = NULL;
+    char *path = NULL;
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -159,8 +166,15 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
 
     // Read the first two components of the first line of the request 
- 
+    sscanf(request, "%s%s", method, path);
+    
     // If GET, handle the get endpoints
+    printf("Method: %s\nPath: %s\n", method, path);
+    if(method == "GET"){
+        printf("GET called on path: %s", path);
+    } else {
+        resp_404(fd);
+    }
 
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
