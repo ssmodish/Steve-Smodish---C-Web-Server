@@ -54,16 +54,19 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     char response[max_response_size];
     int response_length;
 
-    // Build HTTP response and store it in response
     sprintf(response, "%s\n%s\nContent-Length: %d\nConnection: close\n\n",
             header, content_type, content_length);
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+
     response_length = strlen(response);
-    //    printf("%s", response);
     // Send it all!
     int rv = send(fd, response, response_length, 0);
+
+    if (rv < 0)
+    {
+        perror("send");
+    }
+    
+    rv = send(fd, body, content_length, 0);
 
     if (rv < 0)
     {
@@ -123,9 +126,8 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    (void)cache;
+
     char filepath[4096];
     struct file_data *filedata;
     char *mime_type;
@@ -141,14 +143,13 @@ void get_file(int fd, struct cache *cache, char *request_path)
 
     if (filedata == NULL)
     {
-        // TODO: make this non-fatal
-        fprintf(stderr, "cannot find file\n");
-        exit(3);
+        resp_404(fd);
+        return;
     }
 
     mime_type = mime_type_get(filepath);
 
-    send_response(fd, "HTTP/1.1 200", mime_type, filedata->data, filedata->size);
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
 
     file_free(filedata);
 }
@@ -204,7 +205,7 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else // Otherwise serve the requested file by calling get_file()
         {
-            get_file(fd, cache, path);
+            get_file(fd, NULL, path);
         }
 
     }
