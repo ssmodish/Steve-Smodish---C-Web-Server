@@ -172,7 +172,7 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd, struct cache *cache)
 {
-    const int request_buffer_size = 65536; // 64K
+    const int request_buffer_size = 262144; // not 64K
     char request[request_buffer_size];
     // char *line;
     char method[16];
