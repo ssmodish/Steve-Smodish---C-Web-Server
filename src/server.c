@@ -53,20 +53,28 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     const int max_response_size = 262144;
     char response[max_response_size];
     int response_length;
+    time_t current_time;
+    struct tm *local_time;
+    char *time_string;
 
-    sprintf(response, "%s\n%s\nContent-Length: %d\nConnection: close\n\n",
-            header, content_type, content_length);
-            // TIME is necessary
+    /* Obtain current time. */
+    current_time = time(NULL);
+    local_time = localtime(&current_time);
+    /* Convert to local time format. */
+    time_string = asctime(local_time);
 
-    response_length = strlen(response);
+//    > The HTTP `Content-Length` header only includes the length of the body, not
+//    > the header. But the `response_length` variable used by `send()` is the
+//    > total length of both header and body.
+
+    response_length = sprintf(response, "%s\nDate: %sContent-Length: %d\nContent-Type: %s\nConnection: close\n\n",
+            header, time_string, content_length, content_type);
+    // TIME is necessary
+
+    memcpy(response + response_length, body, content_length);
+    response_length += content_length;
 
     int rv = send(fd, response, response_length, 0);
-    if (rv < 0)
-    {
-        perror("send");
-    }
-
-    rv = send(fd, body, content_length, 0);
     if (rv < 0)
     {
         perror("send");
@@ -80,16 +88,18 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
  */
 void get_d20(int fd)
 {
-    char response[256];
-    
+    const int max_response_size = 262144;
+    char response[max_response_size];
+    int response_length;
     // Generate a random number between 1 and 20 inclusive
-    int rando = (rand()%20) + 1;
+    int rando = (rand() % 20) + 1;
 
     // Use send_response() to send it back as text/plain data
     sprintf(response, "<h1>Roll d20!</h1>%d", rando);
 
-    send_response(fd, "HTTP/1.1 200 OK", response);
+    response_length = strlen(response);
 
+    send_response(fd, "HTTP/1.1 200 OK", "text/html", response, response_length);
 
     ///////////////////
     // IMPLEMENT ME! //
@@ -134,10 +144,11 @@ void get_file(int fd, struct cache *cache, char *request_path)
     struct file_data *filedata;
     char *mime_type;
 
-    if(strcmp(request_path, "/") == 0){
+    if (strcmp(request_path, "/") == 0)
+    {
         request_path = "/index.html";
     }
-    
+
     // Fetch the requested file
 
     snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
@@ -207,7 +218,6 @@ void handle_http_request(int fd, struct cache *cache)
         {
             get_file(fd, NULL, path);
         }
-
     }
     else
     {
