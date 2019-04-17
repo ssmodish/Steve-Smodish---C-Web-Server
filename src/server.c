@@ -56,18 +56,17 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 
     sprintf(response, "%s\n%s\nContent-Length: %d\nConnection: close\n\n",
             header, content_type, content_length);
+            // TIME is necessary
 
     response_length = strlen(response);
-    // Send it all!
-    int rv = send(fd, response, response_length, 0);
 
+    int rv = send(fd, response, response_length, 0);
     if (rv < 0)
     {
         perror("send");
     }
-    
-    rv = send(fd, body, content_length, 0);
 
+    rv = send(fd, body, content_length, 0);
     if (rv < 0)
     {
         perror("send");
@@ -81,13 +80,16 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
  */
 void get_d20(int fd)
 {
+    char response[256];
+    
     // Generate a random number between 1 and 20 inclusive
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    int rando = (rand()%20) + 1;
 
     // Use send_response() to send it back as text/plain data
+    sprintf(response, "<h1>Roll d20!</h1>%d", rando);
+
+    send_response(fd, "HTTP/1.1 200 OK", response);
+
 
     ///////////////////
     // IMPLEMENT ME! //
@@ -132,14 +134,14 @@ void get_file(int fd, struct cache *cache, char *request_path)
     struct file_data *filedata;
     char *mime_type;
 
-    // Fetch the requested file
     if(strcmp(request_path, "/") == 0){
         request_path = "/index.html";
     }
+    
+    // Fetch the requested file
+
     snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
-    printf("Filepath: %s\n", filepath);
     filedata = file_load(filepath);
-    printf("Filedata: %s\n", filedata);
 
     if (filedata == NULL)
     {
@@ -162,10 +164,10 @@ void get_file(int fd, struct cache *cache, char *request_path)
  */
 char *find_start_of_body(char *header)
 {
+    (void)header;
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
-    return header;
 }
 
 /**
@@ -173,6 +175,8 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd, struct cache *cache)
 {
+    (void)cache;
+
     const int request_buffer_size = 262144; // not 64K
     char request[request_buffer_size];
     // char *line;
@@ -188,12 +192,8 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
     // Read the first two components of the first line of the request
-    sscanf(request, "%s %s ", method, path);
+    sscanf(request, "%s %s", method, path);
 
     // If GET, handle the get endpoints
     //    printf("%s", request);
@@ -214,7 +214,7 @@ void handle_http_request(int fd, struct cache *cache)
         resp_404(fd);
     }
 
-    printf("Method: %s\nPath: %s\n", method, path);
+    // printf("Method: %s\nPath: %s\n", method, path);
 
     // (Stretch) If POST, handle the post request
 }
