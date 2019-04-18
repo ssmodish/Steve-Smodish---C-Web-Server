@@ -95,15 +95,11 @@ void get_d20(int fd)
     int rando = (rand() % 20) + 1;
 
     // Use send_response() to send it back as text/plain data
-    sprintf(response, "<h1>Roll d20!</h1>%d", rando);
+    sprintf(response, "<head><title>Roll D20!</title></head><body><h1>Roll d20!</h1><h2>%d</h2></body>", rando);
 
     response_length = strlen(response);
 
     send_response(fd, "HTTP/1.1 200 OK", "text/html", response, response_length);
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
 }
 
 /**
