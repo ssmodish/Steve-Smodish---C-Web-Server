@@ -134,8 +134,6 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    (void)cache;
-
     char filepath[4096];
     struct file_data *filedata;
     char *mime_type;
@@ -145,22 +143,31 @@ void get_file(int fd, struct cache *cache, char *request_path)
         request_path = "/index.html";
     }
 
-    // Fetch the requested file
+    // Fetch the requested file from cache
+    struct cache_entry *ce = cache_get(cache, request_path);
+    printf("1.0\n");
 
-    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
-    filedata = file_load(filepath);
+    if(ce != NULL) {
+        send_response(fd, "HTTP/1.1 200 OK", ce->content_type, ce->content, ce->content_length);
+    } else {
+        printf("1.1\n");
+        snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+        filedata = file_load(filepath);
 
-    if (filedata == NULL)
-    {
-        resp_404(fd);
-        return;
+        if (filedata == NULL)
+        {
+            resp_404(fd);
+            return;
+        }
+
+        mime_type = mime_type_get(filepath);
+        printf("1.2\n");
+        cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+        printf("1.3\n");
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+        printf("1.4\n");
+        file_free(filedata);
     }
-
-    mime_type = mime_type_get(filepath);
-
-    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
-
-    file_free(filedata);
 }
 
 /**
@@ -182,8 +189,6 @@ char *find_start_of_body(char *header)
  */
 void handle_http_request(int fd, struct cache *cache)
 {
-    (void)cache;
-
     const int request_buffer_size = 262144; // not 64K
     char request[request_buffer_size];
     // char *line;
@@ -212,7 +217,7 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else // Otherwise serve the requested file by calling get_file()
         {
-            get_file(fd, NULL, path);
+            get_file(fd, cache, path);
         }
     }
     else
